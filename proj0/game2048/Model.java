@@ -78,6 +78,7 @@ public class Model extends Observable {
         return maxScore;
     }
 
+
     /** Clear the board to empty and reset the score. */
     public void clear() {
         score = 0;
@@ -94,6 +95,45 @@ public class Model extends Observable {
         setChanged();
     }
 
+    public boolean[][] checkabove(Tile tile, boolean[][] mergedlist){
+        int i = tile.row();
+        int j = tile.col();
+        int size = size();
+        //only working with non-top two rows
+        if (i == size - 1){
+            return mergedlist;
+        }
+        else if (i == size - 2){
+            Tile tabove = board.tile(j, i + 1);
+            if (tabove == null){
+                board.move(j, i+1, tile);
+            }
+            else if ((tile.value() == tabove.value()) ){
+                boolean merged = board.move(j, i + 1, tile);
+                score += tile.value() * 2;
+                mergedlist[j][i+1] = true;
+            }
+        }
+        else {
+            for (int k = i + 1; k < size; k++) {
+                if (board.tile(j, k) == null) { //empty above
+                    board.move(j, k, tile);
+                    mergedlist[j][k] = mergedlist[j][i]; // move in case moving already merged tile
+                    mergedlist[j][i] = false;
+                    checkabove(tile, mergedlist);
+                }
+                else if (board.tile(j, k).value() == tile.value() && !mergedlist[j][k] && !mergedlist[j][i]){ //can merge
+                    score += tile.value() * 2;
+                    board.move(j, k, tile);
+                    mergedlist[j][k] = true; //new tile is merged
+                    mergedlist[j][i] = false; //old tile (null) not merged
+                }
+            }
+        }
+        return mergedlist;
+
+
+    }
     /** Tilt the board toward SIDE. Return true iff this changes the board.
      *
      * 1. If two Tile objects are adjacent in the direction of motion and have
@@ -110,10 +150,22 @@ public class Model extends Observable {
         boolean changed;
         changed = false;
 
+
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
-
+        //score changes if >0 tiles combine. its incremented by the sum of all combined tiles (so if 2+2 and 4+4 merge, increase score by 4+8 = 12
+        //start with only up direction
+        int size = size();
+        boolean[][] mergedlist = new boolean[0][];
+        for (int i = 0; i < size; i++){ //rows
+            for (int j = 0; j < size; j++){ //columns
+                Tile tile = board.tile(j,i);
+                if (tile != null) {
+                    checkabove(tile, mergedlist);
+                }
+                }
+            }
         checkGameOver();
         if (changed) {
             setChanged();
