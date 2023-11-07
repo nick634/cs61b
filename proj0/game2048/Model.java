@@ -7,6 +7,7 @@ import java.util.Observable;
 /** The state of a game of 2048.
  *  @author TODO: YOUR NAME HERE
  */
+@SuppressWarnings("SpellCheckingInspection")
 public class Model extends Observable {
     /** Current contents of the board. */
     private Board board;
@@ -94,82 +95,89 @@ public class Model extends Observable {
         checkGameOver();
         setChanged();
     }
-
-    public boolean[][] checkabove(Tile tile, boolean[][] mergedlist){
+    public int mainloop(){
+        //want to return true if board changed
+        int size = size();
+        boolean[][] mergedlist = new boolean[size][size];
+        int moves = 0;
+        for (int i = score - 2; i > -1; i--){ // only need to iterate on second row and below
+            for (int j = 0; j < score; j++){
+                System.out.print("checking tile ("+j+", "+i);
+                //now loop over each tile top left to bottom right
+                //currently on a tile
+                System.out.print(board);
+                Tile tile = board.tile(j,i);
+                if (tile != null){
+                    //now take the tile and find the highest place it can move
+                    //plug into a function that checks if the tile above is empty or mergable. if empty, check above that one to see if empty or mergable. etc etc.
+                    //if its not then move the tile to the current spot
+                    int moved = movetohighestfreetile(tile, mergedlist);
+                    moves += moved;
+                }
+            }
+        }
+        return moves;
+    }
+    public boolean mergable(Tile tile, Tile tileabove, boolean[][] mergedlist){
+        if (tileabove.value() == tile.value() && !mergedlist[tile.col()][tile.row()] && !mergedlist[tileabove.col()][tileabove.col()]){
+            return true;
+        }
+        return false;
+    }
+    public int movetohighestfreetile(Tile tile, boolean[][] mergedlist){
         int i = tile.row();
         int j = tile.col();
         int size = size();
-        //only working with non-top two rows
-        if (i == size - 1){
-            return mergedlist;
-        }
-        else if (i == size - 2){
-            Tile tabove = board.tile(j, i + 1);
-            if (tabove == null){
-                board.move(j, i+1, tile);
+        int highest = i;
+        boolean moved = false;
+        //boolean movable = false;
+        for (int k = i + 1; k < size; k++){ //for each tile above current, want to see if its empty or mergable. once you hit one thats not (or the top),
+            // set highest to be the last valid square and move there
+            Tile tileabove = board.tile(j, k); //some tile above
+            if (tileabove == null){
+                highest = tileabove.col();
+                moved = true;
             }
-            else if ((tile.value() == tabove.value()) ){
-                boolean merged = board.move(j, i + 1, tile);
-                score += tile.value() * 2;
-                mergedlist[j][i+1] = true;
+            else if (mergable(tile, tileabove, mergedlist)){
+                highest = tileabove.col();
+                mergedlist[j][k] = true;
+                moved = true;
             }
-        }
-        else {
-            for (int k = i + 1; k < size; k++) {
-                if (board.tile(j, k) == null) { //empty above
-                    board.move(j, k, tile);
-                    mergedlist[j][k] = mergedlist[j][i]; // move in case moving already merged tile
-                    mergedlist[j][i] = false;
-                    checkabove(tile, mergedlist);
+            else {
+                board.move(j, highest, tile);
+                if (moved == true){
+                    return 1;
                 }
-                else if (board.tile(j, k).value() == tile.value() && !mergedlist[j][k] && !mergedlist[j][i]){ //can merge
-                    score += tile.value() * 2;
-                    board.move(j, k, tile);
-                    mergedlist[j][k] = true; //new tile is merged
-                    mergedlist[j][i] = false; //old tile (null) not merged
+                else {
+                    return 0;
                 }
             }
         }
-        return mergedlist;
-
-
+        return 9999; //error
     }
-    /** Tilt the board toward SIDE. Return true iff this changes the board.
-     *
-     * 1. If two Tile objects are adjacent in the direction of motion and have
-     *    the same value, they are merged into one Tile of twice the original
-     *    value and that new value is added to the score instance variable
-     * 2. A tile that is the result of a merge will not merge again on that
-     *    tilt. So each move, every tile will only ever be part of at most one
-     *    merge (perhaps zero).
-     * 3. When three adjacent tiles in the direction of motion have the same
-     *    value, then the leading two tiles in the direction of motion merge,
-     *    and the trailing tile does not.
-     * */
     public boolean tilt(Side side) {
         boolean changed;
-        changed = false;
-
-
+        //changed = false;
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
         //score changes if >0 tiles combine. its incremented by the sum of all combined tiles (so if 2+2 and 4+4 merge, increase score by 4+8 = 12
         //start with only up direction
-        int size = size();
-        boolean[][] mergedlist = new boolean[0][];
-        for (int i = 0; i < size; i++){ //rows
-            for (int j = 0; j < size; j++){ //columns
-                Tile tile = board.tile(j,i);
-                if (tile != null) {
-                    checkabove(tile, mergedlist);
-                }
-                }
-            }
+
+        //must figure out where each tile will end up. if everything above is null, will move to top row. basically, iterate but instead of moving tile each time, pass
+        // into a function that then sees if it can move it again. if it cant then done.
+        int moves = mainloop();
+        if (moves > 0){
+            changed = true;
+        }
+        else {
+            changed = false;
+        }
         checkGameOver();
         if (changed) {
             setChanged();
         }
+        System.out.println("tilt done");
         return changed;
     }
 
