@@ -9,13 +9,21 @@ import java.util.Observable;
  */
 @SuppressWarnings("SpellCheckingInspection")
 public class Model extends Observable {
-    /** Current contents of the board. */
+    /**
+     * Current contents of the board.
+     */
     private Board board;
-    /** Current score. */
+    /**
+     * Current score.
+     */
     private int score;
-    /** Maximum score so far.  Updated when game ends. */
+    /**
+     * Maximum score so far.  Updated when game ends.
+     */
     private int maxScore;
-    /** True iff game is ended. */
+    /**
+     * True iff game is ended.
+     */
     private boolean gameOver;
 
     /* Coordinate System: column C, row R of the board (where row 0,
@@ -23,20 +31,26 @@ public class Model extends Observable {
      * to board.tile(c, r).  Be careful! It works like (x, y) coordinates.
      */
 
-    /** Largest piece value. */
+    /**
+     * Largest piece value.
+     */
     public static final int MAX_PIECE = 2048;
 
-    /** A new 2048 game on a board of size SIZE with no pieces
-     *  and score 0. */
+    /**
+     * A new 2048 game on a board of size SIZE with no pieces
+     * and score 0.
+     */
     public Model(int size) {
         board = new Board(size);
         score = maxScore = 0;
         gameOver = false;
     }
 
-    /** A new 2048 game where RAWVALUES contain the values of the tiles
+    /**
+     * A new 2048 game where RAWVALUES contain the values of the tiles
      * (0 if null). VALUES is indexed by (row, col) with (0, 0) corresponding
-     * to the bottom-left corner. Used for testing purposes. */
+     * to the bottom-left corner. Used for testing purposes.
+     */
     public Model(int[][] rawValues, int score, int maxScore, boolean gameOver) {
         int size = rawValues.length;
         board = new Board(rawValues, score);
@@ -45,22 +59,27 @@ public class Model extends Observable {
         this.gameOver = gameOver;
     }
 
-    /** Return the current Tile at (COL, ROW), where 0 <= ROW < size(),
-     *  0 <= COL < size(). Returns null if there is no tile there.
-     *  Used for testing. Should be deprecated and removed.
-     *  */
+    /**
+     * Return the current Tile at (COL, ROW), where 0 <= ROW < size(),
+     * 0 <= COL < size(). Returns null if there is no tile there.
+     * Used for testing. Should be deprecated and removed.
+     */
     public Tile tile(int col, int row) {
         return board.tile(col, row);
     }
 
-    /** Return the number of squares on one side of the board.
-     *  Used for testing. Should be deprecated and removed. */
+    /**
+     * Return the number of squares on one side of the board.
+     * Used for testing. Should be deprecated and removed.
+     */
     public int size() {
         return board.size();
     }
 
-    /** Return true iff the game is over (there are no moves, or
-     *  there is a tile with value 2048 on the board). */
+    /**
+     * Return true iff the game is over (there are no moves, or
+     * there is a tile with value 2048 on the board).
+     */
     public boolean gameOver() {
         checkGameOver();
         if (gameOver) {
@@ -69,18 +88,24 @@ public class Model extends Observable {
         return gameOver;
     }
 
-    /** Return the current score. */
+    /**
+     * Return the current score.
+     */
     public int score() {
         return score;
     }
 
-    /** Return the current maximum game score (updated at end of game). */
+    /**
+     * Return the current maximum game score (updated at end of game).
+     */
     public int maxScore() {
         return maxScore;
     }
 
 
-    /** Clear the board to empty and reset the score. */
+    /**
+     * Clear the board to empty and reset the score.
+     */
     public void clear() {
         score = 0;
         gameOver = false;
@@ -88,96 +113,102 @@ public class Model extends Observable {
         setChanged();
     }
 
-    /** Add TILE to the board. There must be no Tile currently at the
-     *  same position. */
+    /**
+     * Add TILE to the board. There must be no Tile currently at the
+     * same position.
+     */
     public void addTile(Tile tile) {
         board.addTile(tile);
         checkGameOver();
         setChanged();
     }
-    public int mainloop(){
-        //want to return true if board changed
+
+    public void mainloop() {
         int size = size();
         boolean[][] mergedlist = new boolean[size][size];
         int moves = 0;
-        for (int i = score - 2; i > -1; i--){ // only need to iterate on second row and below
-            for (int j = 0; j < score; j++){
-                System.out.print("checking tile ("+j+", "+i);
-                //now loop over each tile top left to bottom right
-                //currently on a tile
-                System.out.print(board);
-                Tile tile = board.tile(j,i);
-                if (tile != null){
-                    //now take the tile and find the highest place it can move
-                    //plug into a function that checks if the tile above is empty or mergable. if empty, check above that one to see if empty or mergable. etc etc.
-                    //if its not then move the tile to the current spot
-                    int moved = movetohighestfreetile(tile, mergedlist);
-                    moves += moved;
+        for (int i = size - 2; i > -1; i--) { // only need to iterate on second row and below
+            for (int j = 0; j < size; j++) {
+                Tile tile = board.tile(j, i);
+                if (tile != null) {
+                    mergedlist = movetohighestfreetile(tile, mergedlist, i, j);
                 }
             }
         }
-        return moves;
     }
-    public boolean mergable(Tile tile, Tile tileabove, boolean[][] mergedlist){
-        if (tileabove.value() == tile.value() && !mergedlist[tile.col()][tile.row()] && !mergedlist[tileabove.col()][tileabove.col()]){
+
+    public boolean mergable(Tile tile, Tile tileabove, boolean[][] mergedlist, int k, int j) {
+        if (tileabove.value() == tile.value() && !mergedlist[j][k]) { //tile above not merged
             return true;
+        } else {
+            return false;
         }
-        return false;
     }
-    public int movetohighestfreetile(Tile tile, boolean[][] mergedlist){
-        int i = tile.row();
-        int j = tile.col();
+
+    public boolean[][] movetohighestfreetile(Tile tile, boolean[][] mergedlist, int i, int j) {
         int size = size();
         int highest = i;
-        boolean moved = false;
         //boolean movable = false;
-        for (int k = i + 1; k < size; k++){ //for each tile above current, want to see if its empty or mergable. once you hit one thats not (or the top),
+        for (int k = i + 1; k < size; k++) { //for each tile above current, want to see if its empty or mergable. once you hit one thats not (or the top),
             // set highest to be the last valid square and move there
             Tile tileabove = board.tile(j, k); //some tile above
-            if (tileabove == null){
-                highest = tileabove.col();
-                moved = true;
+            if (tileabove == null) {
+                highest = k;
             }
-            else if (mergable(tile, tileabove, mergedlist)){
-                highest = tileabove.col();
-                mergedlist[j][k] = true;
-                moved = true;
+            else if (mergable(tile, tileabove, mergedlist, k, j)) {
+                highest = k;
+                mergedlist[j][k] = true; //set mergedlist value to true ie dont merge
+                score += tile.value() * 2;
             }
             else {
                 board.move(j, highest, tile);
-                if (moved == true){
-                    return 1;
+                return mergedlist;
+            }
+        }
+        board.move(j, highest, tile);
+        return mergedlist;
+    }
+
+    public int[][] boardarray(){
+        int size = size();
+        int[][] board_arr = new int[size][size];
+        for (int i = 0; i < size; i++){
+            for (int j = 0; j < size; j++){
+                Tile tile = board.tile(j,i);
+                if (tile == null){
+                    board_arr[j][i] = 0;
                 }
-                else {
-                    return 0;
+                else{
+                    board_arr[j][i] = tile(j, i).value();
                 }
             }
         }
-        return 9999; //error
+        return board_arr;
     }
     public boolean tilt(Side side) {
-        boolean changed;
-        //changed = false;
+        boolean changed = false;
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
         //score changes if >0 tiles combine. its incremented by the sum of all combined tiles (so if 2+2 and 4+4 merge, increase score by 4+8 = 12
-        //start with only up direction
+        int[][] old_board = boardarray();
+        board.setViewingPerspective(side);
 
-        //must figure out where each tile will end up. if everything above is null, will move to top row. basically, iterate but instead of moving tile each time, pass
-        // into a function that then sees if it can move it again. if it cant then done.
-        int moves = mainloop();
-        if (moves > 0){
-            changed = true;
-        }
-        else {
-            changed = false;
+        int size = size();
+        mainloop();
+        board.setViewingPerspective(Side.NORTH);
+        int[][] new_board = boardarray();
+        for (int i = 0; i < size; i++){
+            for (int j = 0; j < size; j++){
+                if (old_board[j][i] != new_board[j][i]){
+                    changed = true;
+                }
+            }
         }
         checkGameOver();
         if (changed) {
             setChanged();
         }
-        System.out.println("tilt done");
         return changed;
     }
 
